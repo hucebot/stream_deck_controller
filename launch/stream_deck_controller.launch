@@ -1,0 +1,43 @@
+<launch>
+    <arg name="use_ros_camera_initiator" default="false"/>
+    <arg name="use_speech_initiator" default="false"/>
+    <arg name="use_emergency_stop" default="false"/>
+    <arg name="use_home_position" default="false"/>
+    <arg name="use_reset_odometry" default="false"/>
+
+    <node pkg="stream_deck_controller" type="stream_deck_controller.py" name="streamdeck_controller" output="screen">
+        <param name="config_file" value="cdonoso_config.yaml"/>
+        <param name="layout_file" value="cdonoso_layout.yaml"/>
+    </node>
+
+
+    <group if="$(arg use_ros_camera_initiator)">
+        <node pkg="stream_deck_controller" type="camera_initiator.py" name="ros_camera_initiator" output="screen">
+            <param name="ip_computer" value="192.168.50.33"/>
+            <param name="username" value="tiago"/>
+            <param name="password" value="tiago"/>
+        </node>
+    </group>
+
+    <group if="$(arg use_speech_initiator)">
+        <node pkg="stream_deck_controller" type="speech_initiator.py" name="ros_speech_initiator" output="screen">
+            <param name="ip_computer" value="192.168.50.76"/>
+            <param name="username" value="gstreamer"/>
+            <param name="password" value="gstreamer"/>
+        </node>
+    </group>
+
+    <group if="$(arg use_emergency_stop)">
+        <node pkg="stream_deck_controller" type="emergency_stop.py" name="emergency_stop" output="screen"/>
+    </group>
+
+    <group if="$(arg use_home_position)">
+        <node pkg="stream_deck_controller" type="home_position.py" name="home_position" output="screen"/>
+    </group>
+
+    <group if="$(arg use_reset_odometry)">
+        <node pkg="stream_deck_controller" type="reset_odometry.py" name="reset_odometry" output="screen"/>
+    </group>
+
+</launch>
+        
