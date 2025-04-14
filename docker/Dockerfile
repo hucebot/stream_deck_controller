@@ -72,7 +72,6 @@ RUN forest add-recipes git@github.com:advrhumanoids/multidof_recipes.git
 RUN forest grow pybind11 --verbose --jobs 4 --pwd user && \
     forest grow matlogger2 --verbose --jobs 4 --pwd user
 
-
 ## HPP-FCL
 WORKDIR /home/forest_ws/src
 RUN git clone https://github.com/humanoid-path-planner/hpp-fcl.git && \
@@ -87,7 +86,7 @@ RUN git clone https://github.com/humanoid-path-planner/hpp-fcl.git && \
     make -j && \
     make install
 
-# ## PINOCCHIO
+## PINOCCHIO
 WORKDIR /home/forest_ws/src
 RUN git clone https://github.com/stack-of-tasks/pinocchio.git && \
     cd /home/forest_ws/src/pinocchio && \
@@ -100,13 +99,13 @@ RUN git clone https://github.com/stack-of-tasks/pinocchio.git && \
     make -j && \
     make install
 
-# # xbot_msgs
+# xbot_msgs
 WORKDIR /home/forest_ws
 RUN source /opt/ros/noetic/setup.bash && forest grow xbot_msgs --verbose --jobs 4 --pwd user
 
-# # xbot2_interface
+# xbot2_interface
 WORKDIR /home/forest_ws/src
-RUN git clone https://github.com/ADVRHumanoids/xbot2_interface.git && \
+RUN git clone -b environment_mesh https://github.com/ADVRHumanoids/xbot2_interface.git && \
     mkdir -p /home/forest_ws/build/xbot2_interface && \
     cd /home/forest_ws/build/xbot2_interface && \
     source /opt/ros/noetic/setup.bash && \
@@ -115,7 +114,7 @@ RUN git clone https://github.com/ADVRHumanoids/xbot2_interface.git && \
     make -j && \
     make install
 
-# # osqp
+# osqp
 RUN git clone https://github.com/oxfordcontrol/osqp.git && \
     cd /home/forest_ws/src/osqp && \
     git checkout 0b34f2ef5c5eec314e7945762e1c8167e937afbd && \
@@ -129,7 +128,7 @@ RUN git clone https://github.com/oxfordcontrol/osqp.git && \
     make -j && \
     make install
 
-# # proxQP
+# proxQP
 RUN git clone https://github.com/Simple-Robotics/proxsuite.git && \
     cd /home/forest_ws/src/proxsuite && \
     git checkout f19f07b51f66268db1f16cbeb538e891bb6d4e21 && \
@@ -143,7 +142,7 @@ RUN git clone https://github.com/Simple-Robotics/proxsuite.git && \
     make -j && \
     make install
 
-# # opensot
+# opensot
 RUN git clone -b 4.0-devel https://github.com/ADVRHumanoids/OpenSoT.git && \
     mkdir -p /home/forest_ws/build/OpenSoT && \
     cd /home/forest_ws/build/OpenSoT && \
@@ -153,7 +152,7 @@ RUN git clone -b 4.0-devel https://github.com/ADVRHumanoids/OpenSoT.git && \
     make -j && \
     make install
 
-# # reflexxes
+# reflexxes
 RUN git clone https://github.com/ADVRHumanoids/RMLTypeII.git && \
     mkdir -p /home/forest_ws/build/RMLTypeII && \
     cd /home/forest_ws/build/RMLTypeII && \
@@ -163,7 +162,7 @@ RUN git clone https://github.com/ADVRHumanoids/RMLTypeII.git && \
     make -j && \
     make install
 
-# # CartesI/O
+# CartesI/O
 RUN git clone -b local_api_fix https://github.com/ADVRHumanoids/CartesianInterface.git && \
     mkdir -p /home/forest_ws/build/CartesianInterface && cd /home/forest_ws/build/CartesianInterface && \
     source /opt/ros/noetic/setup.bash && \
@@ -172,8 +171,8 @@ RUN git clone -b local_api_fix https://github.com/ADVRHumanoids/CartesianInterfa
     make -j && \
     make install
 
-# # cartesio_acceleration_support
-RUN git clone -b 2.0-devel https://github.com/ADVRHumanoids/cartesio_acceleration_support.git && \ 
+# cartesio_acceleration_support
+RUN git clone -b 2.0-devel https://github.com/ADVRHumanoids/cartesio_acceleration_support.git && \
     mkdir -p /home/forest_ws/build/cartesio_acceleration_support && \ 
     cd /home/forest_ws/build/cartesio_acceleration_support && \ 
     source /opt/ros/noetic/setup.bash && \
@@ -182,8 +181,8 @@ RUN git clone -b 2.0-devel https://github.com/ADVRHumanoids/cartesio_acceleratio
     make -j && \
     make install
 
-# # cartesio_collision_support
-RUN git clone -b 2.0-devel https://github.com/ADVRHumanoids/cartesio_collision_support.git && \
+# cartesio_collision_support
+RUN git clone -b environment_mesh https://github.com/ADVRHumanoids/cartesio_collision_support.git && \
     mkdir -p /home/forest_ws/build/cartesio_collision_support && \
     cd /home/forest_ws/build/cartesio_collision_support && \
     source /opt/ros/noetic/setup.bash && \
@@ -192,7 +191,7 @@ RUN git clone -b 2.0-devel https://github.com/ADVRHumanoids/cartesio_collision_s
     make -j && \
     make install
 
-# # base_estimation
+# base_estimation
 RUN git clone -b xbot2ifc https://github.com/ADVRHumanoids/base_estimation.git && \
     mkdir -p /home/forest_ws/build/base_estimation && \
     cd /home/forest_ws/build/base_estimation && \
@@ -202,8 +201,8 @@ RUN git clone -b xbot2ifc https://github.com/ADVRHumanoids/base_estimation.git &
     make -j && \
     make install
 
-# ## Tiago
-RUN git clone https://github.com/hucebot/tiago_dual_cartesio_config.git \
+## Tiago
+RUN git clone -b environment_mesh https://github.com/hucebot/tiago_dual_cartesio_config.git \
     && git clone -b kinetic-devel https://github.com/EnricoMingo/tiago_dual_robot.git \
     && git clone https://github.com/pal-robotics/tiago_dual_description_calibration.git \ 
     && git clone https://github.com/pal-robotics/pal_urdf_utils.git \
@@ -254,5 +253,6 @@ RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 
 RUN apt-get -y install python-is-python3
 RUN apt-get -y install ros-noetic-catkin python3-catkin-tools
+RUN pip install --upgrade scipy
 
 RUN echo 'export ROS_PACKAGE_PATH="${ROS_PACKAGE_PATH}:/home/forest_ws/src/tiago_dual_cartesio_config:/home/forest_ws/src/tiago_dual_robot:/home/forest_ws/src/tiago_dual_description_calibration:/home/forest_ws/src/pal_urdf_utils:/home/forest_ws/src/omni_base_robot:/home/forest_ws/src/tiago_robot:/home/forest_ws/src/hey5_description:/home/forest_ws/src/pmb2_robot:/home/forest_ws/src/pal_gripper"' >> /home/forest_ws/setup.bash
