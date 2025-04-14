@@ -15,8 +15,8 @@ class RosbagRecorder:
         rospy.init_node('rosbag_recorder', anonymous=False)
 
         self.topics_to_record = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['rosbag_topics']
-        self.bag_directory = rospy.get_param('~bag_directory', '/home/forest_ws/src/stream_deck_controller/rosbag')
-        self.task_name = rospy.get_param('~task', 'test_task')
+        self.bag_directory = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['rosbag_directory']
+        self.task_name = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['task_name']
 
         if not os.path.exists(self.bag_directory):
             os.makedirs(self.bag_directory)

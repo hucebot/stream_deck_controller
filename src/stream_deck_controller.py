@@ -7,6 +7,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageColor
 from StreamDeck.DeviceManager import DeviceManager
 from StreamDeck.ImageHelpers import PILHelper
 
+from std_msgs.msg import Bool
+
 class StreamDeckController:
     def __init__(self):
         rospy.init_node('stream_deck_controller', anonymous=False)
@@ -21,6 +23,8 @@ class StreamDeckController:
 
         self.recording_dataset = False
         self.last_bag_path = None
+
+        self.home_publisher = rospy.Publisher('/streamdeck/home_position', Bool, queue_size=1)
 
         try:
             self.start_srv = rospy.ServiceProxy('/rosbag_recorder/start', Trigger)
@@ -38,7 +42,7 @@ class StreamDeckController:
             quit()
 
         # Load fonts/images
-        self.assets_path = os.path.join(os.path.dirname(__file__), '../assets')
+        self.assets_path =  "/home/forest_ws/src/stream_deck_controller/assets"#os.path.join(os.path.dirname(__file__), '../assets')
         self.font = ImageFont.truetype(os.path.join(self.assets_path, 'Roboto-Regular.ttf'), 14)
         self.background_image = Image.new("RGB", (self.key_width, self.key_height), color=ImageColor.getrgb("#000000"))
         
@@ -63,6 +67,7 @@ class StreamDeckController:
             # HOME POSITION
             if key == self.home_position_button:
                 self.create_button(self.home_position_button, "HOME POSITION", self.background_color_active)
+                self.home_publisher.publish(True)
 
             # RECORD DATASET
             elif key == self.record_position_button and not self.recording_dataset:

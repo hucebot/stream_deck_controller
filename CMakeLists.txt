@@ -26,6 +26,9 @@ include_directories(
 #############
 
 catkin_install_python(PROGRAMS 
+  src/stream_deck_controller.py
+  src/tiago/home_position.py
+  src/tiago/record_data.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(DIRECTORY launch assets

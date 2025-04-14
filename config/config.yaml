@@ -1,3 +1,7 @@
+general:
+  rosbag_directory: /home/forest_ws/src/stream_deck_controller/rosbags
+  task_name: pick_and_place
+
 rosbag_topics:
   - /joint_states
   - /cartesian/solution
