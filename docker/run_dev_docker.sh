@@ -15,8 +15,7 @@ if [ $isRunning -eq 0 ]; then
         --net host \
         --privileged \
         -v /dev:/dev \
-        -v `pwd`:/home/forest_ws/src/stream_deck_controller \
-        -v `pwd`/../robot_dashboard:/home/forest_ws/src/robot_dashboard \
+        -v `pwd`/../:/home/forest_ws/src/stream_deck_controller \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -w /home/forest_ws \
         stream_deck:latest

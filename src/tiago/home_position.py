@@ -31,7 +31,7 @@ class HomePosition:
 
             "arm_right_1_joint": -0.70,
             "arm_right_2_joint": 1.25,
-            "arm_right_3_joint": 2.40,
+            "arm_right_3_joint": 2.50,
             "arm_right_4_joint": 1.30,
             "arm_right_5_joint": 1.80,
             "arm_right_6_joint": -0.50,
