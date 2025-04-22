@@ -46,6 +46,7 @@ class HomePosition:
         rospy.loginfo("Home node started")
 
         rospy.Subscriber(self.home_position_topic, Bool, self.home_position_callback)
+        self.home_position_publisher = rospy.Publisher('/streamdeck/reset_initial_state', Bool, queue_size=1)
 
     def home_position_callback(self, msg):
         if msg.data:
@@ -82,6 +83,7 @@ class HomePosition:
             postural.setLambda(lambda0)
             self.client.getTask("gripper_left_grasping_frame").enable()
             self.client.getTask("gripper_right_grasping_frame").enable()
+            self.home_position_publisher.publish(Bool(data=True))
 
 
 if __name__ == "__main__":
