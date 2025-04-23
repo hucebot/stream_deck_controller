@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 
-import rospy
-import os
+import rospy, os, yaml
 from std_srvs.srv import Trigger, TriggerRequest
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageColor
 from StreamDeck.DeviceManager import DeviceManager
 from StreamDeck.ImageHelpers import PILHelper
+
+import sys
+sys.path.append('/home/forest_ws/src/stream_deck_controller/src/utils/postprocess')
+from manip_demo_rosbag_to_hdf5 import rosbag_to_hdf5
+from inria_tiago_hdf5_to_lerobot import hdf5_to_lerobot
+
+def read_config(file_path):
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
 
 from std_msgs.msg import Bool
 
@@ -45,6 +54,10 @@ class StreamDeckController:
         self.assets_path =  "/home/forest_ws/src/stream_deck_controller/assets"#os.path.join(os.path.dirname(__file__), '../assets')
         self.font = ImageFont.truetype(os.path.join(self.assets_path, 'Roboto-Regular.ttf'), 14)
         self.background_image = Image.new("RGB", (self.key_width, self.key_height), color=ImageColor.getrgb("#000000"))
+
+        #rosbag_directory
+        self.bag_directory = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['rosbag_directory']
+        self.task_name = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['task_name']
         
         self.column, self.row = self.stream_deck.key_layout()
 
@@ -103,11 +116,38 @@ class StreamDeckController:
                         self.last_bag_path = None
                     except Exception as e:
                         rospy.logerr(f"Could not delete bag file: {e}")
+
+            # CREATE HDF5
+            elif key == self.convert_rosbag_to_hdf5_button:
+                self.create_button(self.convert_rosbag_to_hdf5_button, "CREATE HDF5", self.background_color_active)
+                rospy.logwarn("Creating HDF5 file. This may take a while.")
+                try:
+                    rosbag_path = os.path.join(self.bag_directory, self.task_name)
+                    if os.path.exists(rosbag_path):
+                        rosbag_to_hdf5(rosbag_path)
+                        rospy.loginfo("HDF5 file created successfully.")  
+                    else:
+                        rospy.logwarn("No bag file to convert.")
+                except rospy.ServiceException as e:
+                    rospy.logerr(e)
+
+            # CREATE LEROBOT
+            elif key == self.convert_hdf5_to_lerobot_button:
+                self.create_button(self.convert_hdf5_to_lerobot_button, "CREATE LEROBOT", self.background_color_active)
+                rospy.logwarn("Creating LEROBOT file. This may take a while.")
+                try:
+                    pass
+                except rospy.ServiceException as e:
+                    rospy.logerr(e)
         else:
             if key == self.home_position_button:
                 self.create_button(self.home_position_button, "HOME POSITION", self.background_color_inactive)
             elif key == self.delete_bag_button:
                 self.create_button(self.delete_bag_button, "DELETE LAST BAG", self.background_color_inactive)
+            elif key == self.convert_rosbag_to_hdf5_button:
+                self.create_button(self.convert_rosbag_to_hdf5_button, "CREATE HDF5", self.background_color_inactive)
+            elif key == self.convert_hdf5_to_lerobot_button:
+                self.create_button(self.convert_hdf5_to_lerobot_button, "CREATE LEROBOT", self.background_color_inactive)
             self.watchdog()
 
     def watchdog(self):
@@ -162,6 +202,17 @@ class StreamDeckController:
         self.delete_bag_button = (0, 4)
         self.delete_bag_button = self.delete_bag_button[0] * self.row + self.delete_bag_button[1]
         self.create_button(self.delete_bag_button, "DELETE LAST BAG", self.background_color_inactive)
+
+        # CREATE HDF5 BUTTON
+        self.convert_rosbag_to_hdf5_button = (0, 6)
+        self.convert_rosbag_to_hdf5_button = self.convert_rosbag_to_hdf5_button[0] * self.row + self.convert_rosbag_to_hdf5_button[1]
+        self.create_button(self.convert_rosbag_to_hdf5_button, "ROSBAG TO HDF5", self.background_color_inactive)
+
+        # CREATE LEROBOT BUTTON
+        self.convert_hdf5_to_lerobot_button = (0, 7)
+        self.convert_hdf5_to_lerobot_button = self.convert_hdf5_to_lerobot_button[0] * self.row + self.convert_hdf5_to_lerobot_button[1]
+        self.create_button(self.convert_hdf5_to_lerobot_button, "HDF5 TO LEROBOT", self.background_color_inactive)
+
 
 if __name__ == '__main__':
     StreamDeckController()
