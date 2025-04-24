@@ -9,7 +9,6 @@ from StreamDeck.ImageHelpers import PILHelper
 import sys
 sys.path.append('/home/forest_ws/src/stream_deck_controller/src/utils/postprocess')
 from manip_demo_rosbag_to_hdf5 import rosbag_to_hdf5
-from inria_tiago_hdf5_to_lerobot import hdf5_to_lerobot
 
 def read_config(file_path):
     with open(file_path, 'r') as file:

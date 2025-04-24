@@ -5,10 +5,9 @@ general:
 rosbag_topics:
   - /joint_states
   - /cartesian/solution
-  - /mobile_base_controller/cmd_vel
   - /dxl_input/pos_right
   - /dxl_input/gripper_right
-  - /gripper_right_grasping_frame/read
-  - /gripper_right_grasping_frame/goal
+  - /cartesian/gripper_right_grasping_frame/reference
+  - /cartesian/gripper_right_grasping_frame/reach/goal
   - /camera/color/image_raw
   - /camera/color/compressed
