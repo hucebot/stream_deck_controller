@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy, os, yaml
-from std_srvs.srv import Trigger, TriggerRequest
+from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageColor
 from StreamDeck.DeviceManager import DeviceManager
 from StreamDeck.ImageHelpers import PILHelper
@@ -10,19 +10,36 @@ import sys
 sys.path.append('/home/forest_ws/src/stream_deck_controller/src/utils/postprocess')
 from manip_demo_rosbag_to_hdf5 import rosbag_to_hdf5
 
-def read_config(file_path):
-    with open(file_path, 'r') as file:
+from std_msgs.msg import Bool
+
+def read_config(config_path):
+    """
+    Reads a YAML configuration file and returns its contents as a dictionary.
+    """
+    with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
-from std_msgs.msg import Bool
+class StreamDeckButton:
+    def __init__(self, position, label, background_color):
+        self.position = position
+        self.label = label
+        self.background_color = background_color
+
+    def change_background_color(self, color):
+        self.background_color = color
+
+    def get_position(self):
+        return self.position
 
 class StreamDeckController:
     def __init__(self):
+        # Initialize ROS node
         rospy.init_node('stream_deck_controller', anonymous=False)
         self.exit_loop = False
         self.rate = rospy.Rate(10)
 
+        # Key styling parameters
         self.key_width = 100
         self.key_height = 100
         self.color_text = "#000000"
@@ -30,16 +47,25 @@ class StreamDeckController:
         self.background_color_inactive = "#bababa"
 
         self.recording_dataset = False
+        self.policy_controlling = False
         self.last_bag_path = None
+        self.replaying_bag = False
 
+
+        # Publishers for deck actions
         self.home_publisher = rospy.Publisher('/streamdeck/home_position', Bool, queue_size=1)
+        self.control_policy_publisher = rospy.Publisher('/streamdeck/control_policy', Bool, queue_size=1)
 
+        # Service proxies for record and replay
         try:
-            self.start_srv = rospy.ServiceProxy('/rosbag_recorder/start', Trigger)
-            self.stop_srv = rospy.ServiceProxy('/rosbag_recorder/stop', Trigger)
-        except rospy.ServiceException:
-            rospy.logerr("Could not connect to rosbag services.")
+            self.start_record_srv = rospy.ServiceProxy('/rosbag_recorder/start', Trigger)
+            self.stop_record_srv  = rospy.ServiceProxy('/rosbag_recorder/stop',  Trigger)
+            self.start_replay_srv = rospy.ServiceProxy('/rosbag_player/start',   Trigger)
+            self.stop_replay_srv  = rospy.ServiceProxy('/rosbag_player/stop',    Trigger)
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Could not connect to rosbag services: {e}")
 
+        # Open Stream Deck
         try:
             self.stream_deck = DeviceManager().enumerate()[0]
             self.stream_deck.open()
@@ -49,23 +75,25 @@ class StreamDeckController:
             rospy.logerr("No Stream Deck found.")
             quit()
 
-        # Load fonts/images
-        self.assets_path =  "/home/forest_ws/src/stream_deck_controller/assets"#os.path.join(os.path.dirname(__file__), '../assets')
+        # Load fonts and background image
+        self.assets_path =  "/home/forest_ws/src/stream_deck_controller/assets"
         self.font = ImageFont.truetype(os.path.join(self.assets_path, 'Roboto-Regular.ttf'), 14)
         self.background_image = Image.new("RGB", (self.key_width, self.key_height), color=ImageColor.getrgb("#000000"))
 
-        #rosbag_directory
-        self.bag_directory = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['rosbag_directory']
-        self.task_name = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['task_name']
-        
-        self.column, self.row = self.stream_deck.key_layout()
+        # rosbag_directory from config
+        cfg = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")
+        self.bag_directory = cfg['general']['rosbag_directory']
+        self.task_name     = cfg['general']['task_name']
 
+        # Lay out keys
+        self.column, self.row = self.stream_deck.key_layout()
         self.initialize_buttons()
         self.stream_deck.set_key_callback(self.on_key_change)
         rospy.on_shutdown(self.shutdown_callback)
         self.main_loop()
 
     def shutdown_callback(self):
+        # Stop main loop and cleanup deck
         self.exit_loop = True
 
     def main_loop(self):
@@ -75,143 +103,112 @@ class StreamDeckController:
         self.stream_deck.close()
 
     def on_key_change(self, deck, key, state):
-        if state:
-            # HOME POSITION
-            if key == self.home_position_button:
-                self.create_button(self.home_position_button, "HOME POSITION", self.background_color_active)
-                self.home_publisher.publish(True)
+        if not state:
+            return
 
-            # RECORD DATASET
-            elif key == self.record_position_button and not self.recording_dataset:
-                try:
-                    resp = self.start_srv(TriggerRequest())
-                    if resp.success:
-                        self.recording_dataset = True
-                        self.create_button(self.record_position_button, "RECORD DATASET", self.background_color_active)
+        # HOME POSITION button pressed
+        if key == self.home_button.get_position():
+            self.home_publisher.publish(True)
+            self.home_button.change_background_color(self.background_color_active)
 
-                        msg_parts = resp.message.split(': ', 1)
-                        if len(msg_parts) == 2:
-                            bag_path = msg_parts[1].strip()
-                            self.last_bag_path = bag_path
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
+        # RECORD DATASET start/stop
+        elif key == self.record_button.get_position():
+            if not self.recording_dataset:
+                rospy.loginfo("Starting dataset recording...")
+                resp = self.start_record_srv(TriggerRequest())
+                if resp.success:
+                    self.recording_dataset = True
+                    self.create_button(self.record_button, self.background_color_active)
+                    # Extract path from service message
+                    parts = resp.message.split(': ',1)
+                    if len(parts)==2:
+                        self.last_bag_path = parts[1].strip()
+            else:
+                rospy.loginfo("Stopping dataset recording...")
+                resp = self.stop_record_srv(TriggerRequest())
+                if resp.success:
+                    self.recording_dataset = False
+                    self.create_button(self.record_button, self.background_color_inactive)
 
-            elif key == self.record_position_button and self.recording_dataset:
-                try:
-                    resp = self.stop_srv(TriggerRequest())
-                    if resp.success:
-                        self.recording_dataset = False
-                        self.create_button(self.record_position_button, "RECORD DATASET", self.background_color_inactive)
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
+        # REPLAY bag start/stop
+        elif key == self.replay_button.get_position():
+            if not self.replaying_bag and self.last_bag_path:
+                rospy.loginfo("Starting bag replay...")
+                resp = self.start_replay_srv(TriggerRequest())
+                if resp.success:
+                    self.replaying_bag = True
+                    self.create_button(self.replay_button, self.background_color_active)
+            elif self.replaying_bag:
+                rospy.loginfo("Stopping bag replay...")
+                resp = self.stop_replay_srv(TriggerRequest())
+                if resp.success:
+                    self.replaying_bag = False
+                    self.create_button(self.replay_button, self.background_color_inactive)
 
-            # DELETE LAST BAG
-            elif key == self.delete_bag_button:
-                self.create_button(self.delete_bag_button, "DELETE LAST BAG", self.background_color_active)
-                if self.last_bag_path:
-                    try:
-                        os.remove(self.last_bag_path)
-                        rospy.loginfo(f"Deleted bag file: {self.last_bag_path}")
-                        self.last_bag_path = None
-                    except Exception as e:
-                        rospy.logerr(f"Could not delete bag file: {e}")
+        # DELETE LAST BAG
+        elif key == self.delete_bag_button.get_position() and self.last_bag_path:
+            os.remove(self.last_bag_path)
+            rospy.loginfo(f"Deleted bag: {self.last_bag_path}")
+            self.last_bag_path = None
+            self.create_button(self.delete_bag_button, self.background_color_active)
 
-            # CREATE HDF5
-            elif key == self.convert_rosbag_to_hdf5_button:
-                self.create_button(self.convert_rosbag_to_hdf5_button, "CREATE HDF5", self.background_color_active)
-                rospy.logwarn("Creating HDF5 file. This may take a while.")
-                try:
-                    rosbag_path = os.path.join(self.bag_directory, self.task_name)
-                    if os.path.exists(rosbag_path):
-                        rosbag_to_hdf5(rosbag_path)
-                        rospy.loginfo("HDF5 file created successfully.")  
-                    else:
-                        rospy.logwarn("No bag file to convert.")
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
+        # ROSBAG TO HDF5
+        elif key == self.convert_rosbag_to_hdf5_button.get_position():
+            rospy.logwarn("Creating HDF5, please wait...")
+            rosbag_path = os.path.join(self.bag_directory, self.task_name)
+            if os.path.exists(rosbag_path):
+                rosbag_to_hdf5(rosbag_path)
+                rospy.loginfo("HDF5 created successfully.")
+            self.create_button(self.convert_rosbag_to_hdf5_button, self.background_color_active)
 
-            # CREATE LEROBOT
-            elif key == self.convert_hdf5_to_lerobot_button:
-                self.create_button(self.convert_hdf5_to_lerobot_button, "CREATE LEROBOT", self.background_color_active)
-                rospy.logwarn("Creating LEROBOT file. This may take a while.")
-                try:
-                    pass
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
-        else:
-            if key == self.home_position_button:
-                self.create_button(self.home_position_button, "HOME POSITION", self.background_color_inactive)
-            elif key == self.delete_bag_button:
-                self.create_button(self.delete_bag_button, "DELETE LAST BAG", self.background_color_inactive)
-            elif key == self.convert_rosbag_to_hdf5_button:
-                self.create_button(self.convert_rosbag_to_hdf5_button, "CREATE HDF5", self.background_color_inactive)
-            elif key == self.convert_hdf5_to_lerobot_button:
-                self.create_button(self.convert_hdf5_to_lerobot_button, "CREATE LEROBOT", self.background_color_inactive)
-            self.watchdog()
+        # POLICY CONTROL toggling
+        elif key == self.policy_control_button.get_position():
+            self.policy_controlling = not self.policy_controlling
+            self.control_policy_publisher.publish(self.policy_controlling)
+            color = self.background_color_active if self.policy_controlling else self.background_color_inactive
+            self.create_button(self.policy_control_button, self.background_color_active if self.policy_controlling else self.background_color_inactive)
+
+        # Reset inactive visuals for one-shot buttons
+        for btn in [self.home_button, self.delete_bag_button, self.convert_rosbag_to_hdf5_button]:
+            if key == btn:
+                self.create_button(btn, btn.label, self.background_color_inactive)
+
+        self.watchdog()
 
     def watchdog(self):
+        # Placeholder for watchdog functionality
         pass
 
-    def create_button(self, position, label, background_color):
-        image = self.background_image.copy()
-        label = label.upper()
-        x_pos = 0
-        y_pos = 40
-
-        if " " not in label:
-            x_pos = 50 - (len(label) * 5)
-        else:
-            list_words = label.split(" ")
-            label = ""
-            for word in list_words:
-                len_word = len(word)
-                if len_word > 7:
-                    label += " "*4 + word + "\n"
-                elif len_word > 5:
-                    label += " "*7 + word + "\n"
-                else:
-                    label += " "*10 + word + "\n"
-
-        draw = ImageDraw.Draw(image)
-        draw.rectangle([(0, 0), (self.key_width, self.key_height)], fill=ImageColor.getrgb(background_color))
-
-        if "EMERGENCY" in label:
-            self.color_text = "#ffffff"
-        else:
-            self.color_text = "#000000"
-
-        draw.text((x_pos, y_pos), label, fill=ImageColor.getrgb(self.color_text), font=self.font)
+    def create_button(self, button, background_color):
+        img = self.background_image.copy()
+        draw = ImageDraw.Draw(img)
+        # Draw background
+        draw.rectangle([(0,0),(self.key_width,self.key_height)], fill=ImageColor.getrgb(background_color))
+        # Center text
+        draw.text((10,40), button.label, fill=ImageColor.getrgb(self.color_text), font=self.font)
+        # Send to deck
+        key_img = PILHelper.to_native_format(self.stream_deck, img)
+        self.stream_deck.set_key_image(button.position, key_img)
         
-        key_image = PILHelper.to_native_format(self.stream_deck, image)
-        self.stream_deck.set_key_image(position, key_image)
-        return position
 
     def initialize_buttons(self):
-        # HOME BUTTON
-        self.home_position_button = (0, 0)
-        self.home_position_button = self.home_position_button[0] * self.row + self.home_position_button[1]
-        self.create_button(self.home_position_button, "HOME POSITION", self.background_color_inactive)
+        self.home_button = StreamDeckButton(self._button_index(0, 0), "HOME POSITION", self.background_color_inactive)
+        self.record_button = StreamDeckButton(self._button_index(0, 1), "RECORD DATASET", self.background_color_inactive)
+        self.replay_button = StreamDeckButton(self._button_index(0, 2), "REPLAY BAG", self.background_color_inactive)
+        self.delete_bag_button = StreamDeckButton(self._button_index(0, 3), "DELETE LAST BAG", self.background_color_inactive)
+        self.convert_rosbag_to_hdf5_button = StreamDeckButton(self._button_index(0, 4), "ROSBAG TO HDF5", self.background_color_inactive)
+        self.policy_control_button = StreamDeckButton(self._button_index(0, 5), "POLICY CONTROL", self.background_color_inactive)
 
-        # RECORD BUTTON
-        self.record_position_button = (0, 3)
-        self.record_position_button = self.record_position_button[0] * self.row + self.record_position_button[1]
-        self.create_button(self.record_position_button, "RECORD DATASET", self.background_color_inactive)
+        # Create initial visuals
+        self.create_button(self.home_button, self.background_color_inactive)
+        self.create_button(self.record_button, self.background_color_inactive)
+        self.create_button(self.replay_button, self.background_color_inactive)
+        self.create_button(self.delete_bag_button, self.background_color_inactive)
+        self.create_button(self.convert_rosbag_to_hdf5_button, self.background_color_inactive)
+        self.create_button(self.policy_control_button, self.background_color_inactive)
 
-        # DELETE BAG BUTTON
-        self.delete_bag_button = (0, 4)
-        self.delete_bag_button = self.delete_bag_button[0] * self.row + self.delete_bag_button[1]
-        self.create_button(self.delete_bag_button, "DELETE LAST BAG", self.background_color_inactive)
-
-        # CREATE HDF5 BUTTON
-        self.convert_rosbag_to_hdf5_button = (0, 6)
-        self.convert_rosbag_to_hdf5_button = self.convert_rosbag_to_hdf5_button[0] * self.row + self.convert_rosbag_to_hdf5_button[1]
-        self.create_button(self.convert_rosbag_to_hdf5_button, "ROSBAG TO HDF5", self.background_color_inactive)
-
-        # CREATE LEROBOT BUTTON
-        self.convert_hdf5_to_lerobot_button = (0, 7)
-        self.convert_hdf5_to_lerobot_button = self.convert_hdf5_to_lerobot_button[0] * self.row + self.convert_hdf5_to_lerobot_button[1]
-        self.create_button(self.convert_hdf5_to_lerobot_button, "HDF5 TO LEROBOT", self.background_color_inactive)
-
+    def _button_index(self, col, row):
+        return col * self.row + row
 
 if __name__ == '__main__':
     StreamDeckController()

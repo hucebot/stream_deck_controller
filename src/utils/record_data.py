@@ -23,10 +23,11 @@ class RosbagRecorder:
 
         self.process = None
 
-        rospy.Service('~start',  Trigger, self.start_recording)
-        rospy.Service('~stop',   Trigger, self.stop_recording)
+        rospy.Service('/rosbag_recorder/start',  Trigger, self.start_recording)
+        rospy.Service('/rosbag_recorder/stop',   Trigger, self.stop_recording)
 
     def start_recording(self, req):
+        rospy.loginfo("Received request to start recording.")
         if self.process is not None:
             return TriggerResponse(success=False, message="Already recording.")
 
@@ -43,6 +44,7 @@ class RosbagRecorder:
         return TriggerResponse(success=True, message=f"Recording started: {output_path}.bag")
 
     def stop_recording(self, req):
+        rospy.loginfo("Received request to stop recording.")
         if self.process is None:
             return TriggerResponse(success=False, message="Not recording.")
 

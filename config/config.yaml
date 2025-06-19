@@ -1,13 +1,14 @@
 general:
   rosbag_directory: /home/forest_ws/src/stream_deck_controller/rosbags
-  task_name: pick_cube_and_put_in_bowl
+  task_name: pick_block
 
 rosbag_topics:
   - /joint_states
+  - /tf
   - /cartesian/solution
   - /dxl_input/pos_right
   - /dxl_input/gripper_right
-  - /cartesian/gripper_right_grasping_frame/reference
-  - /cartesian/gripper_right_grasping_frame/reach/goal
+  - /gripper_right_grasping_frame/read 
+  - /gripper_right_grasping_frame/goal
   - /camera/color/image_raw
   - /camera/color/compressed

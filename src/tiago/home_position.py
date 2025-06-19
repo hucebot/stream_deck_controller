@@ -83,6 +83,8 @@ class HomePosition:
             postural.setLambda(lambda0)
             self.client.getTask("gripper_left_grasping_frame").enable()
             self.client.getTask("gripper_right_grasping_frame").enable()
+            
+            
             self.home_position_publisher.publish(Bool(data=True))
 
 

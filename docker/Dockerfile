@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV TZ="Europe/Paris"
-ENV MAINTAINER = 'clemente.donoso@inria.fr'
+LABEL maintainer="clemente.donoso@inria.fr"
 
 WORKDIR /deps
 
@@ -352,11 +352,6 @@ RUN PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./
 RUN PATH="$HOME/bin:$PATH" make && make install
 RUN cp ~/bin/ffmpeg /usr/bin/ffmpeg
 
-# Install LeRobot (tested with commit 2c22f7d76da3fcbd06ad8fbfd6baf1b13f5f0956, 25-03-2025)
-WORKDIR /
-RUN git clone https://github.com/huggingface/lerobot.git
-WORKDIR /lerobot
-RUN ls
 
 ###### Source the ROS setup.bash
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc

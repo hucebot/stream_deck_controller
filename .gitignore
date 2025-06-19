@@ -1,6 +1,9 @@
 ###### ROS files ######
 /rosbags
 
+###### Policy files ######
+/policy
+
 ###### Python files ######
 
 
