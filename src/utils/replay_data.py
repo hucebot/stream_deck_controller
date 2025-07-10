@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 
-import os
-import subprocess
+import os, subprocess, yaml
+
 import rospy
 from std_srvs.srv import Trigger, TriggerResponse
+
+def read_config(file_path):
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
 
 class RosbagPlayer:
     def __init__(self):
         rospy.init_node('rosbag_player', anonymous=False)
 
-        self.bag_path = rospy.get_param('~bag_path', '/home/forest_ws/src/stream_deck_controller/rosbags/telepresence_experiment/telepresence_experiment.bag')
+        self.bag_directory = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['rosbag_directory']
+        self.task_name = read_config("/home/forest_ws/src/stream_deck_controller/config/config.yaml")['general']['task_name']
+        self.bag_path = os.path.join(self.bag_directory, self.task_name)
 
         self.process = None
 
@@ -18,8 +26,17 @@ class RosbagPlayer:
 
         rospy.loginfo("rosbag_player node ready. Services available: start, stop.")
 
+    def get_last_bag_file(self, task_dir):
+        bag_files = [f for f in os.listdir(task_dir) if f.endswith('.bag')]
+        if not bag_files:
+            rospy.logwarn(f"No bag files found in directory: {task_dir}")
+            return None
+        bag_files.sort()
+        return os.path.join(task_dir, bag_files[-1])
+
     def start_playback(self, req):
         rospy.loginfo("Received request to start playback.")
+        self.bag_path = self.get_last_bag_file(self.bag_path)
         if self.process is not None and self.process.poll() is None:
             return TriggerResponse(success=False,
                                    message="Rosbag is already playing.")

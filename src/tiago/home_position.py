@@ -21,23 +21,23 @@ class HomePosition:
         self.error = 0.05
 
         self.home_posture = {
-            "arm_left_1_joint": -0.80,
-            "arm_left_2_joint": 1.30,
-            "arm_left_3_joint": 2.50,
-            "arm_left_4_joint": 1.50,
-            "arm_left_5_joint": 1.80,
-            "arm_left_6_joint": -0.30,
-            "arm_left_7_joint": 0.00,
+            "arm_left_1_joint": -1.05,
+            "arm_left_2_joint": 0.61,
+            "arm_left_3_joint": 2.74,
+            "arm_left_4_joint": 1.78,
+            "arm_left_5_joint": 1.90,
+            "arm_left_6_joint": -0.68,
+            "arm_left_7_joint": 0.16,
 
-            "arm_right_1_joint": -0.80,
-            "arm_right_2_joint": 1.30,
-            "arm_right_3_joint": 2.50,
-            "arm_right_4_joint": 1.50,
-            "arm_right_5_joint": 1.80,
-            "arm_right_6_joint": -0.30,
-            "arm_right_7_joint": 0.00,
+            "arm_right_1_joint": -1.05,
+            "arm_right_2_joint": 0.61,
+            "arm_right_3_joint": 2.74,
+            "arm_right_4_joint": 1.78,
+            "arm_right_5_joint": 1.90,
+            "arm_right_6_joint": -0.68,
+            "arm_right_7_joint": 0.16,
 
-            "torso_lift_joint": 0.20,
+            "torso_lift_joint": 0.34,
         }
 
         self.cartesio_sol_topic = "/cartesian/solution"

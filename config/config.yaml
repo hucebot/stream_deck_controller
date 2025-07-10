@@ -1,6 +1,6 @@
 general:
   rosbag_directory: /home/forest_ws/src/stream_deck_controller/rosbags
-  task_name: pick_block
+  task_name: pick_red_block_place_greeb_bowl
 
 rosbag_topics:
   - /joint_states
@@ -10,5 +10,8 @@ rosbag_topics:
   - /dxl_input/gripper_right
   - /gripper_right_grasping_frame/read 
   - /gripper_right_grasping_frame/goal
-  - /camera/color/image_raw
-  - /camera/color/compressed
+  - /camera/0/color/image_raw
+  - /camera/0/color/compressed
+  - /camera/1/color/image_raw
+  - /camera/1/color/compressed
+  - /cartesian/gripper_right_grasping_frame/reference

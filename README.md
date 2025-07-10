@@ -18,6 +18,7 @@ The easiest way to get started is to use the provided Docker image. You can find
 # Command 1
 mkdir -p /home/forest_ws/build/stream_deck_controller
 cd /home/forest_ws/build/stream_deck_controller
+source /opt/ros/noetic/setup.bash && source /home/forest_ws/setup.bash && cmake -DCMAKE_INSTALL_PREFIX:STRING=/home/forest_ws/install -DCMAKE_BUILD_TYPE:STRING=Release ../../src/stream_deck_controller && make -j8 && make install
 ```
 ```bash
 # Command 2

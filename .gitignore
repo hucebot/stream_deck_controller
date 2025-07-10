@@ -5,7 +5,7 @@
 /policy
 
 ###### Python files ######
-
+*.pyc
 
 # Vscode Folder
 .vscode/
