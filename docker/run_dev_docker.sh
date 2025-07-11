@@ -16,6 +16,7 @@ if [ $isRunning -eq 0 ]; then
         --privileged \
         -v /dev:/dev \
         -v `pwd`/../:/home/forest_ws/src/stream_deck_controller \
+        -v `pwd`/../../demo_record_utils/postprocess:/home/forest_ws/src/stream_deck_controller/src/utils/postprocess \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -w /home/forest_ws \
         stream_deck:latest

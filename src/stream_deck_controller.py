@@ -46,15 +46,22 @@ class StreamDeckController:
         self.background_color_active = "#27a007"
         self.background_color_inactive = "#bababa"
 
+        # toggle flags
+        self.home_position = False
         self.recording_dataset = False
         self.policy_controlling = False
         self.last_bag_path = None
         self.replaying_bag = False
+        self.talking = False
 
 
         # Publishers for deck actions
         self.home_publisher = rospy.Publisher('/streamdeck/home_position', Bool, queue_size=1)
+        self.home_publisher_industrial = rospy.Publisher('/streamdeck/home_position_industrial', Bool, queue_size=1)
+        self.home_publisher_kitchen = rospy.Publisher('/streamdeck/home_position_kitchen', Bool, queue_size=1)
+        self.home_publisher_table = rospy.Publisher('/streamdeck/home_position_table', Bool, queue_size=1)
         self.control_policy_publisher = rospy.Publisher('/streamdeck/control_policy', Bool, queue_size=1)
+        self.talk_publisher = rospy.Publisher('/streamdeck/speak', Bool, queue_size=1)
 
         # Service proxies for record and replay
         try:
@@ -103,16 +110,20 @@ class StreamDeckController:
         self.stream_deck.close()
 
     def on_key_change(self, deck, key, state):
-        if not state:
-            return
-
         # HOME POSITION button pressed
-        if key == self.home_button.get_position():
-            self.home_publisher.publish(True)
-            self.home_button.change_background_color(self.background_color_active)
+        for btn in [self.home_button, self.home_industrial_button, self.home_kitchen_button, self.home_table_button]:
+            if key == btn.get_position():
+                if not self.home_position:
+                    self.home_position = True
+                    self.create_button(btn, self.background_color_active)
+                    self.home_publisher.publish(True)
+                else:
+                    self.home_position = False
+                    self.create_button(btn, self.background_color_inactive)
+                    self.home_publisher.publish(False)
 
         # RECORD DATASET start/stop
-        elif key == self.record_button.get_position():
+        if key == self.record_button.get_position():
             if not self.recording_dataset:
                 rospy.loginfo("Starting dataset recording...")
                 resp = self.start_record_srv(TriggerRequest())
@@ -168,10 +179,16 @@ class StreamDeckController:
             color = self.background_color_active if self.policy_controlling else self.background_color_inactive
             self.create_button(self.policy_control_button, self.background_color_active if self.policy_controlling else self.background_color_inactive)
 
-        # Reset inactive visuals for one-shot buttons
-        for btn in [self.home_button, self.delete_bag_button, self.convert_rosbag_to_hdf5_button]:
-            if key == btn:
-                self.create_button(btn, btn.label, self.background_color_inactive)
+        elif key == self.talk_button.get_position():
+            if not self.talking:
+                self.talking = True
+                self.create_button(self.talk_button, self.background_color_active)
+                self.talk_publisher.publish(True)
+            else:
+                self.talking = False
+                self.create_button(self.talk_button, self.background_color_inactive)
+                self.talk_publisher.publish(False)
+
 
         self.watchdog()
 
@@ -199,6 +216,12 @@ class StreamDeckController:
         self.convert_rosbag_to_hdf5_button = StreamDeckButton(self._button_index(0, 4), "ROSBAG TO HDF5", self.background_color_inactive)
         self.policy_control_button = StreamDeckButton(self._button_index(0, 5), "POLICY CONTROL", self.background_color_inactive)
 
+        self.home_industrial_button = StreamDeckButton(self._button_index(3, 0), "HOME INDUSTRIAL", self.background_color_inactive)
+        self.home_kitchen_button = StreamDeckButton(self._button_index(3, 1), "HOME KITCHEN", self.background_color_inactive)
+        self.home_table_button = StreamDeckButton(self._button_index(3, 2), "HOME TABLE", self.background_color_inactive)
+
+        self.talk_button = StreamDeckButton(self._button_index(3, 7), "TALK", self.background_color_inactive)
+
         # Create initial visuals
         self.create_button(self.home_button, self.background_color_inactive)
         self.create_button(self.record_button, self.background_color_inactive)
@@ -206,6 +229,14 @@ class StreamDeckController:
         self.create_button(self.delete_bag_button, self.background_color_inactive)
         self.create_button(self.convert_rosbag_to_hdf5_button, self.background_color_inactive)
         self.create_button(self.policy_control_button, self.background_color_inactive)
+
+        self.create_button(self.home_industrial_button, self.background_color_inactive)
+        self.create_button(self.home_kitchen_button, self.background_color_inactive)
+        self.create_button(self.home_table_button, self.background_color_inactive)
+
+        self.create_button(self.talk_button, self.background_color_inactive)
+
+        
 
     def _button_index(self, col, row):
         return col * self.row + row

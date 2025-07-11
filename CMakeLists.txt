@@ -28,6 +28,9 @@ include_directories(
 catkin_install_python(PROGRAMS 
   src/stream_deck_controller.py
   src/tiago/home_position.py
+  src/tiago/home_position_industrial.py
+  src/tiago/home_position_kitchen.py
+  src/tiago/home_position_table.py
   src/utils/record_data.py
   src/utils/replay_data.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
