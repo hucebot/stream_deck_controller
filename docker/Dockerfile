@@ -359,5 +359,6 @@ RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 RUN apt-get -y install python-is-python3
 RUN apt-get -y install ros-noetic-catkin
 RUN pip install --upgrade scipy
+RUN pip install tqdm
 
 RUN echo 'export ROS_PACKAGE_PATH="${ROS_PACKAGE_PATH}:/home/forest_ws/src/tiago_dual_cartesio_config:/home/forest_ws/src/tiago_dual_robot:/home/forest_ws/src/tiago_dual_description_calibration:/home/forest_ws/src/pal_urdf_utils:/home/forest_ws/src/omni_base_robot:/home/forest_ws/src/tiago_robot:/home/forest_ws/src/hey5_description:/home/forest_ws/src/pmb2_robot:/home/forest_ws/src/pal_gripper"' >> /home/forest_ws/setup.bash
